@@ -123,7 +123,7 @@ json NN::exportNetwork(const std::string& filename, bool sable) {
 }
 
 /*!
-    @brief sets the current value of a given node if the node is not fixed input
+ d   @brief sets the current value of a given node if the node is not fixed input
 
     Returns -1 if the node is a fixed input node.
             0 on success.
