@@ -34,6 +34,7 @@ NN::NN(std::vector<int> layersSizesIn) {
         neuralNetwork[i][0].weightsPrevious.resize(0);
         neuralNetwork[i][0].layer = i;
         neuralNetwork[i][0].index = 0;
+        neuralNetwork[i][0].weightedSum = -1;
         for(int j = 1; j < neuralNetwork[i].size();j++){
             neuralNetwork[i][j].layer = i;
             neuralNetwork[i][j].index = j;
@@ -251,20 +252,38 @@ int NN::deltas(std::vector<double> correctValues) {
         return -1;
     }
     //for each node in the last row -- calculate deltas
-    for(int index = 0; index < neuralNetwork[neuralNetwork.size()-1].size(); index++){
+    for(int index = 1; index < neuralNetwork[neuralNetwork.size()-1].size(); index++){
         neuralNetwork[neuralNetwork.size()-1][index].delta = sigmoidPrime(neuralNetwork[neuralNetwork.size()-1][index].weightedSum) * (correctValues[index -1] - neuralNetwork[neuralNetwork.size()-1][index].getCurrVal());
     }
+
     //for the rest of the nodes
     //loop through the remaining layers in reverse order
     for(int layer = neuralNetwork[neuralNetwork.size() - 1].size() - 2; layer > 0; layer--){
-        //for each node: (not including fixed input)
-        for(int node = 1; node < neuralNetwork[layer].size(); node++){
-            double sum = 0;
+        //for each node:
+        for(int node = 0; node < neuralNetwork[layer].size(); node++){
+            double sum = 0.0;
             for (int nodePrev = 1; nodePrev < neuralNetwork[layer-1].size();nodePrev++){
-                sum = sum +  neuralNetwork[layer-1][nodePrev].weightsPrevious[node] * neuralNetwork[layer-1][nodePrev].delta;
+                sum = sum +  (1.0) * neuralNetwork[layer-1][nodePrev].weightsPrevious[node] * neuralNetwork[layer-1][nodePrev].delta;
             }
             // calculate the delta for each of the
             neuralNetwork[layer][node].delta = sigmoidPrime(neuralNetwork[layer][node].weightedSum) * sum ;
+        }
+    }
+    return 0;
+}
+
+int NN::updateWeights(double lr) {
+    //for each node in the network:
+    //for each later
+    int layer = neuralNetwork.size();
+    for(layer = layer -1; layer > 0; layer--){
+        for (int nodeIn = 0; nodeIn < neuralNetwork[layer].size(); nodeIn++){
+            for(int weight = 0; weight < neuralNetwork[layer][nodeIn].weightsPrevious.size();weight++){
+                double change = (lr * neuralNetwork[layer-1][weight].getCurrVal() * neuralNetwork[layer][nodeIn].delta);
+                double og = neuralNetwork[layer][nodeIn].weightsPrevious[weight];
+                neuralNetwork[layer][nodeIn].weightsPrevious[weight] = change + og;
+                std::cerr << neuralNetwork[layer][nodeIn].weightsPrevious[weight] << "\n";
+            }
         }
     }
     return 0;

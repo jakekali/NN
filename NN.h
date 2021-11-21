@@ -17,6 +17,7 @@ public:
     int loadWeightsFromFile(const std::string& filename);
     std::vector<double> eval(std::vector<double> input);
     int deltas(std::vector<double> input);
+    int updateWeights(double lr);
 private:
     class node{
     private:
