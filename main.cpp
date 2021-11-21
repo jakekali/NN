@@ -1,13 +1,14 @@
 #include <iostream>
 #include <vector>
 #include "NN.cpp"
-#include "json.hpp"
 using json = nlohmann::json;
 
 int main() {
-    std::vector<int> jac = {5,4,3};
+    std::vector<int> jac = {30,5,1};
     NN j = NN(jac);
-    j.exportNetwork("dd.txt",true);
-    std::cout << "Hello, World!" << std::endl;
+    j.loadWeightsFromFile("sInit.txt");
+    auto b = j.eval({0.656,0.264,0.657,0.400,0.831,0.804,0.704,0.769,0.796,0.808,0.430,0.185,0.461,0.283,0.206,0.362,0.136,0.301,0.380,0.208,0.704,0.350,0.735,0.475,0.729,0.710,0.741,0.912,0.693,0.687});
+    auto c = j.deltas({0});
+
     return 0;
 }

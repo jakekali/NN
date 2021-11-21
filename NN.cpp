@@ -6,7 +6,9 @@
 #include <vector>
 #include <iomanip>
 #include <fstream>
-#include "json.hpp"
+#include <cctype>
+#include <string>
+#include <algorithm>
 
 using json = nlohmann::json;
 
@@ -33,6 +35,8 @@ NN::NN(std::vector<int> layersSizesIn) {
         neuralNetwork[i][0].layer = i;
         neuralNetwork[i][0].index = 0;
         for(int j = 1; j < neuralNetwork[i].size();j++){
+            neuralNetwork[i][j].layer = i;
+            neuralNetwork[i][j].index = j;
             neuralNetwork[i][j].fixed = false;
             neuralNetwork[i][j].setCurrentValue(0);
             if(i == 0){
@@ -41,7 +45,8 @@ NN::NN(std::vector<int> layersSizesIn) {
                 neuralNetwork[i][j].weightsPrevious.resize(neuralNetwork[i-1].size());
                 for(double & weightsPreviou : neuralNetwork[i][j].weightsPrevious){
                     //random weights between -1 and 1
-                    weightsPreviou = (double) 2.0 * rand() / RAND_MAX - 1.0;
+                    double f = (double)rand() / RAND_MAX;
+                    weightsPreviou = (-1) + f * (2);
                 }
             }
         }
@@ -84,15 +89,29 @@ json NN::exportNetwork(const std::string& filename, bool sable) {
     //Sable - Standard Assigment format (.txt)
     if(sable){
         std::ofstream o(filename);
+        int i = 0;
         for (int num : layersSizes){
-            o << num << ' ';
+            if(i == layersSizes.size() -1){
+                o << num;
+            }else {
+                o << num << ' ';
+            }
+            i++;
         }
         o << '\n';
-        for(int i = 1; i < layersSizes.size(); i ++){
+
+        for(int j = 1; j < layersSizes.size(); j ++){
             //this counter starts from one because the first fixed input node at index zero does not have any incoming weights
-            for(int n = 1; n < neuralNetwork[i].size(); n++){
-                for (double & weight : neuralNetwork[i][n].weightsPrevious){
-                    o << weight << ' ';
+            for(int n = 1; n < neuralNetwork[j].size(); n++){
+                int w = 0;
+                for (double & weight : neuralNetwork[j][n].weightsPrevious){
+                    if(w == neuralNetwork[j][n].weightsPrevious.size() - 1){
+                        o << std::setprecision(3) << std::fixed << weight;
+
+                    }else{
+                        o << std::setprecision(3) << std::fixed << weight << ' ';
+                    }
+                    w++;
                 }
                 o << '\n';
             }
@@ -121,7 +140,137 @@ json NN::exportNetwork(const std::string& filename, bool sable) {
         return exportJ;
     }
 }
+// true if the argument is whitespace, false otherwise
+bool space(char c)
+{
+    return isspace(c);
+}
 
+// false if the argument is whitespace, true otherwise
+bool not_space(char c)
+{
+    return !isspace(c);
+}
+std::vector<double> split(const std::string& str)
+{
+    typedef std::string::const_iterator iter;
+    std::vector<double> ret;
+    iter i = str.begin();
+    while (i != str.end())
+    {
+        // ignore leading blanks
+        i = find_if(i, str.end(), not_space);
+        // find end of next word
+        iter j = find_if(i, str.end(), space);
+        // copy the characters in [i, j)
+        if (i != str.end())
+            ret.push_back(std::stod(std::string(i, j)));
+        i = j;
+    }
+    return ret;
+}
+int NN::loadWeightsFromFile(const std::string& filename) {
+    std::ifstream in(filename);
+    std::string currLine;
+    int layer = 1;
+    int index = 1;
+    //just to skip first line
+    std::getline(in, currLine);
+    while(std::getline(in, currLine)){
+        if(this->loadWeightsToNode(layer,index,split(currLine)) == -1){
+            std::cerr << "Bruh \n";
+        }
+        index++;
+        if(index == neuralNetwork[layer].size()){
+            index = 1;
+            layer++;
+        }
+    }
+
+    return 0;
+}
+
+double sigmoid(double x) {
+    double result;
+    result = 1 / (1 + exp(-x));
+    return result;
+}
+
+double sigmoidPrime(double x) {
+    double result;
+    result = sigmoid(x) * (1 - sigmoid(x));
+    return result;
+}
+
+std::vector<double> NN::eval(std::vector<double> input) {
+    if(input.size() != (neuralNetwork[0].size()-1)){
+        std::cerr << "input size mismatch input size: " << input.size() << "nn size: " << neuralNetwork[0].size() << '\n';
+    }
+    //Copies the input vector of a single training example to the input nodes of the NN
+    for (int i = 1; i < neuralNetwork[0].size(); i++){
+        neuralNetwork[0][i].setCurrentValue(input[i]);
+    }
+
+    for(int l = 1; l < neuralNetwork.size(); l++){
+        for(int j = 1; j < neuralNetwork[l].size(); j++){
+            double newVal = 0;
+            if(neuralNetwork[l][j].weightsPrevious.size() != neuralNetwork[l-1].size()){
+                std::cerr << "major size mismatch \n";
+            }
+            for(int w = 0; w < neuralNetwork[l][j].weightsPrevious.size();w++){
+                newVal += (1.0) * neuralNetwork[l][j].weightsPrevious[w] * neuralNetwork[l-1][w].getCurrVal();
+            }
+            neuralNetwork[l][j].weightedSum = newVal;
+            neuralNetwork[l][j].setCurrentValue(sigmoid(newVal));
+        }
+    }
+    std::vector<double> ret;
+    ret.resize(neuralNetwork[neuralNetwork.size()-1].size()-1);
+    for(int i = 1; i < neuralNetwork[neuralNetwork.size()-1].size(); i++){
+        ret[i-1] = neuralNetwork[neuralNetwork.size()-1][i].getCurrVal();
+    }
+    return ret;
+}
+/*!
+ d   @brief caclulates deltas as part of the backprogration learning
+            changes deltas within the nodes class.
+
+    Returns -1 if the output vector size does not match the input.
+            0 on success.
+
+    @param std::vector<double> correctValues
+
+    @return  -1 if the output vector size does not match the input.
+            0 on success.
+
+    */
+int NN::deltas(std::vector<double> correctValues) {
+    //check that the correctValues and outputs are the same size
+    if(correctValues.size() != neuralNetwork[neuralNetwork.size()-1].size() -1){
+        std::cerr << "Bruh, input mismatch with correct values. correctValues.size() = " << correctValues.size() << "but, neuralNetwork[neuralNetwork.size()-1].size() -1 = " << neuralNetwork[neuralNetwork.size()-1].size() -1 << '\n';
+        return -1;
+    }
+    //for each node in the last row -- calculate deltas
+    for(int index = 0; index < neuralNetwork[neuralNetwork.size()-1].size(); index++){
+        neuralNetwork[neuralNetwork.size()-1][index].delta = sigmoidPrime(neuralNetwork[neuralNetwork.size()-1][index].weightedSum) * (correctValues[index -1] - neuralNetwork[neuralNetwork.size()-1][index].getCurrVal());
+    }
+    //for the rest of the nodes
+    //loop through the remaining layers in reverse order
+    for(int layer = neuralNetwork[neuralNetwork.size() - 1].size() - 2; layer > 0; layer--){
+        //for each node: (not including fixed input)
+        for(int node = 1; node < neuralNetwork[layer].size(); node++){
+            double sum = 0;
+            for (int nodePrev = 1; nodePrev < neuralNetwork[layer-1].size();nodePrev++){
+                sum = sum +  neuralNetwork[layer-1][nodePrev].weightsPrevious[node] * neuralNetwork[layer-1][nodePrev].delta;
+            }
+            // calculate the delta for each of the
+            neuralNetwork[layer][node].delta = sigmoidPrime(neuralNetwork[layer][node].weightedSum) * sum ;
+        }
+    }
+    return 0;
+}
+
+//Node Class
 /*!
  d   @brief sets the current value of a given node if the node is not fixed input
 
@@ -134,7 +283,7 @@ json NN::exportNetwork(const std::string& filename, bool sable) {
             0 on success.
 
     */
-int NN::node::setCurrentValue(int newValue) {
+int NN::node::setCurrentValue(double newValue) {
     if(!fixed) {
         currValue = newValue;
     }else {

@@ -14,16 +14,22 @@ public:
     NN(std::vector<int> layersSizesIn);
     int loadWeightsToNode (int layer, int index, std::vector<double> weightsPrevious);
     json exportNetwork(const std::string& filename, bool sable);
+    int loadWeightsFromFile(const std::string& filename);
+    std::vector<double> eval(std::vector<double> input);
+    int deltas(std::vector<double> input);
 private:
     class node{
-        int currValue;
+    private:
+        double currValue;
     public:
         int index;
         int layer;
-        int setCurrentValue(int newValue);
+        int setCurrentValue(double newValue);
         std::vector<double> weightsPrevious;
         bool fixed = false;
-        int getCurrVal(){return currValue;};
+        double getCurrVal() const{return currValue;};
+        double delta;
+        double weightedSum;
     };
     std::vector<int> layersSizes;
     std::vector<std::vector<node>> neuralNetwork;
