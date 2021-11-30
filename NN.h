@@ -18,11 +18,14 @@ public:
     std::vector<double> eval(std::vector<double> input);
     int deltas(std::vector<double> input);
     int updateWeights(double lr);
+    int cleanUpBackProb();
+    int train(std::string filename, int epoch, double lr);
 private:
     class node{
     private:
         double currValue;
     public:
+        void reset();
         int index;
         int layer;
         int setCurrentValue(double newValue);

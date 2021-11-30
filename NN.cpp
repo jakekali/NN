@@ -258,12 +258,12 @@ int NN::deltas(std::vector<double> correctValues) {
 
     //for the rest of the nodes
     //loop through the remaining layers in reverse order
-    for(int layer = neuralNetwork[neuralNetwork.size() - 1].size() - 2; layer > 0; layer--){
+    for(int layer = neuralNetwork.size() - 2; layer > 0; layer--){
         //for each node:
-        for(int node = 0; node < neuralNetwork[layer].size(); node++){
+        for(int node = 1; node < neuralNetwork[layer].size(); node++){
             double sum = 0.0;
-            for (int nodePrev = 1; nodePrev < neuralNetwork[layer-1].size();nodePrev++){
-                sum = sum +  (1.0) * neuralNetwork[layer-1][nodePrev].weightsPrevious[node] * neuralNetwork[layer-1][nodePrev].delta;
+            for(int nodeAfter = 1; nodeAfter < neuralNetwork[layer+1].size(); nodeAfter++){
+                sum += neuralNetwork[layer+1][nodeAfter].weightsPrevious[node] * neuralNetwork[layer+1][nodeAfter].delta;
             }
             // calculate the delta for each of the
             neuralNetwork[layer][node].delta = sigmoidPrime(neuralNetwork[layer][node].weightedSum) * sum ;
@@ -282,16 +282,75 @@ int NN::updateWeights(double lr) {
                 double change = (lr * neuralNetwork[layer-1][weight].getCurrVal() * neuralNetwork[layer][nodeIn].delta);
                 double og = neuralNetwork[layer][nodeIn].weightsPrevious[weight];
                 neuralNetwork[layer][nodeIn].weightsPrevious[weight] = change + og;
-                std::cerr << neuralNetwork[layer][nodeIn].weightsPrevious[weight] << "\n";
+                //std::cerr << neuralNetwork[layer][nodeIn].weightsPrevious[weight] << "\n";
             }
         }
     }
     return 0;
 }
 
+int NN::cleanUpBackProb() {
+    //for each node in the network:
+    //for each later
+    int layer = neuralNetwork.size();
+    for(layer = layer -1; layer >= 0; layer--){
+        for (int nodeIn = 0; nodeIn < neuralNetwork[layer].size(); nodeIn++){
+            neuralNetwork[layer][nodeIn].reset();
+        }
+    }
+
+    return 0;
+}
+/*!
+    @brief sets the current value of a given node if the node is not fixed input
+
+    Returns -1 if the node is a fixed input node.
+            0 on success.
+
+    @param int newValue
+
+    @return -1 if the node is a fixed input node.
+            0 on success.
+
+    */
+int NN::train(std::string filename, int epochs, double lr) {
+    for(int epoch = 0; epoch < epochs; epoch++){
+        //load in training examples:
+        std::ifstream in(filename);
+        std::string currLine;
+        std::getline(in, currLine);
+
+        std::vector<double> params = split(currLine);
+        for(int example = 0; example < params[0]; example++){
+            std::getline(in, currLine);
+            std::vector<double> ex = split(currLine);
+            auto first = ex.cbegin();
+            auto last = ex.cbegin() + params[1];
+            auto first2 = ex.cbegin() + params[1];
+            auto last2 = ex.cend();
+            std::vector<double> inputVec(first, last);
+            std::vector<double> outVec(first2,last2);
+
+            eval(inputVec);
+            deltas(outVec);
+            updateWeights(lr);
+            cleanUpBackProb();
+
+            // Doesn't work for later epochs, idk why
+        }
+        in.close();
+    }
+
+
+    return 0;
+}
+
+
+
+
 //Node Class
 /*!
- d   @brief sets the current value of a given node if the node is not fixed input
+    @brief sets the current value of a given node if the node is not fixed input
 
     Returns -1 if the node is a fixed input node.
             0 on success.
@@ -310,4 +369,15 @@ int NN::node::setCurrentValue(double newValue) {
         return -1;
     }
     return 0;
+}
+
+void NN::node::reset() {
+    if(!fixed){
+        currValue = 0;
+        weightedSum = 0;
+    }else{
+        currValue = -1;
+        weightedSum = -1;
+    }
+    delta = 0;
 }
