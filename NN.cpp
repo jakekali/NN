@@ -208,8 +208,9 @@ std::vector<double> NN::eval(std::vector<double> input) {
         std::cerr << "input size mismatch input size: " << input.size() << "nn size: " << neuralNetwork[0].size() << '\n';
     }
     //Copies the input vector of a single training example to the input nodes of the NN
+    //Correct here 0 was putting shit in wrong places, skipping first input
     for (int i = 1; i < neuralNetwork[0].size(); i++){
-        neuralNetwork[0][i].setCurrentValue(input[i]);
+        neuralNetwork[0][i].setCurrentValue(input[i-1]);
     }
 
     for(int l = 1; l < neuralNetwork.size(); l++){
