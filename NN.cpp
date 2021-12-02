@@ -220,7 +220,7 @@ std::vector<double> NN::eval(std::vector<double> input) {
                 std::cerr << "major size mismatch \n";
             }
             for(int w = 0; w < neuralNetwork[l][j].weightsPrevious.size();w++){
-                newVal += (1.0) * neuralNetwork[l][j].weightsPrevious[w] * neuralNetwork[l-1][w].getCurrVal();
+                newVal += ((1.0) * neuralNetwork[l][j].weightsPrevious[w] * neuralNetwork[l-1][w].getCurrVal());
             }
             neuralNetwork[l][j].weightedSum = newVal;
             neuralNetwork[l][j].setCurrentValue(sigmoid(newVal));

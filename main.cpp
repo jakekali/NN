@@ -6,7 +6,7 @@ using json = nlohmann::json;
 
 
 
-int fileEval(const std::string& filein, const std::string& fileout, NN &j){
+/*int fileEval(const std::string& filein, const std::string& fileout, NN &j){
     //open file
     std::ifstream in(filein);
     std::string currLine;
@@ -35,22 +35,22 @@ int fileEval(const std::string& filein, const std::string& fileout, NN &j){
         for(int i = 0; i < stats.size(); i++){
             //ret[i] = std::round(ret[i]);
 
-            if(ret[i] > 0.5 && outVec[i] == 1){
+            if(ret[i] >= 0.5 && outVec[i] == 1){
                 stats[i].A++;
-            }else if(ret[i] > 0.5 && outVec[i] == 0){
+            }else if(ret[i] >= 0.5 && outVec[i] == 0){
                 stats[i].B++;
-            }else if(ret[i] <= 0.5 && outVec[i] == 1){
+            }else if(ret[i] < 0.5 && outVec[i] == 1){
                 stats[i].C++;
-            }else if(ret[i] <= 0.5 && outVec[i] == 0){
+            }else if(ret[i] < 0.5 && outVec[i] == 0){
                 stats[i].D++;
             }
         }
         k++;
     }
     stat totStats;
-    double acc;
-    double prec;
-    double recall;
+    double acc = 0;
+    double prec = 0;
+    double recall = 0;
 
 
     for(int i = 0; i < stats.size(); i++) {
@@ -89,13 +89,77 @@ int fileEval(const std::string& filein, const std::string& fileout, NN &j){
 
     return 0;
 
-}
+}*/
 int main() {
-    std::vector<int> jac = {30, 5, 1};
-    NN j = NN(jac);
-    j.loadWeightsFromFile("wdbc.trained.txt");
-    fileEval("wdbc.test.txt", "df.txt", j);
-//    j.train("bctraining.txt",100,0.1);
-//    j.exportNetwork("bec2.txt", true);
+    std::cout << "Select an Option: \n1222221. Test \n2.Train\n";
+    std::string opt;
+    std::cin >> opt;
+    if(opt == "1"){
+        //User Input
+        std::cout << "Enter the name of a trained network file: \n";
+        std::string weightsIn;
+        std::cin >> weightsIn;
+
+        std::cout << "Enter the name of a testing file: \n";
+        std::string testFile;
+        std::cin >> testFile;
+
+        std::cout << "Enter the name of an output file: \n";
+        std::string outfile;
+        std::cin >> outfile;
+
+        std::ifstream in(weightsIn);
+        std::string currLine;
+//        std::getline(in,currLine);
+//        in.close();
+//
+//
+//        auto sizes = split(currLine);
+//        std::vector<int> nnSize(sizes.begin(),sizes.end());
+//
+//        NN j = NN(nnSize);
+//        j.loadWeightsFromFile(weightsIn);
+//        fileEval(testFile, outfile, j);
+
+
+    }else{
+        std::cout << "Enter the name of inital weights file: \n";
+        std::string weightsIn;
+        std::cin >> weightsIn;
+        std::cout << "Enter the name of a training file: \n";
+        std::string testFile;
+        std::cin >> testFile;
+        std::cout << "Enter the name of an output file: \n";
+        std::string outfile;
+        std::cin >> outfile;
+        std::cout << "Enter a positive integer of epochs: \n";
+        std::string epochs;
+        std::cin >> epochs;
+        std::cout << "Enter a floating point learning rate: \n";
+        std::string lr;
+        std::cin >> lr;
+
+        int numEpochs = std::stoi(epochs);
+        double numLr = std::stod(lr);
+
+        std::ifstream in(weightsIn);
+        std::string currLine;
+
+        std::filebuf fb;
+        fb.open (weightsIn,std::ios::out);
+        std::ostream os(&fb);
+
+        //just to skip first line
+        std::getline(in, currLine);
+        auto sizes = split(currLine);
+        std::vector<int> nnSize(sizes.begin(),sizes.end());
+        fb.close();
+
+        NN j = NN(nnSize);
+        j.loadWeightsFromFile(weightsIn);
+        j.train(testFile,numEpochs,numLr);
+        j.exportNetwork(outfile, true);
+
+    }
     return 0;
 }

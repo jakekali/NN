@@ -16,17 +16,17 @@ public:
     int C =0;
     int D =0;
     double getAccuracy() {
-        return (A+D)/(A+B+C+D);
+        return (1.0) * ((double) (A + D) / (double) (A + B + C + D));
     }
     double getPrecision() {
-        return A/(A+B);
+        return (double) (1.0) *  ((double) A/ (double) (A+B));
     }
 
     double getRecall(){
-        return A/(A+C);
+        return (double) (1.0) *  ((double) A/ (double) (A+C));
     };
     double getF1(){
-        return (2 * getPrecision() * getRecall())/(getPrecision() + getRecall());
+        return (2 * (double) getPrecision() * (double) getRecall())/ (double) (getPrecision() + (double) getRecall());
     };
 };
 
