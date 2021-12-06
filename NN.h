@@ -20,6 +20,8 @@ public:
     int updateWeights(double lr);
     int cleanUpBackProb();
     int train(std::string filename, int epoch, double lr);
+    std::vector<double> runningAcc;
+    std::vector<double> runningLoss;
 private:
     class node{
     private:

@@ -10,6 +10,9 @@
 #include <string>
 #include <algorithm>
 #include <iostream>
+#include <chrono>
+#include <ctime>    
+#include "tensorboard_logger.h"
 
 using json = nlohmann::json;
 
@@ -253,6 +256,27 @@ int NN::deltas(std::vector<double> correctValues) {
         std::cerr << "Bruh, input mismatch with correct values. correctValues.size() = " << correctValues.size() << "but, neuralNetwork[neuralNetwork.size()-1].size() -1 = " << neuralNetwork[neuralNetwork.size()-1].size() -1 << '\n';
         return -1;
     }
+
+    double loss;
+    int max = INT_MIN;
+    int max_index = -1;
+    //tensorboard output
+    for(int i = 1; i < neuralNetwork[neuralNetwork.size()-1].size(); i++){
+        loss += neuralNetwork[neuralNetwork.size()-1][i].getCurrVal() - correctValues[i-1];
+        if(max > neuralNetwork[neuralNetwork.size()-1][i].getCurrVal()){
+            max = neuralNetwork[neuralNetwork.size()-1][i].getCurrVal();
+            max_index = i;
+        }
+    }
+    runningLoss.push_back(loss);
+    if(correctValues[max_index-1] == 1){
+        runningAcc.push_back(1);
+    }else{
+        runningAcc.push_back(0);
+    }
+
+
+
     //for each node in the last row -- calculate deltas
     for(int index = 1; index < neuralNetwork[neuralNetwork.size()-1].size(); index++){
         neuralNetwork[neuralNetwork.size()-1][index].delta = sigmoidPrime(neuralNetwork[neuralNetwork.size()-1][index].weightedSum) * (correctValues[index -1] - neuralNetwork[neuralNetwork.size()-1][index].getCurrVal());
@@ -316,6 +340,10 @@ int NN::cleanUpBackProb() {
 
     */
 int NN::train(std::string filename, int epochs, double lr) {
+    std::string name = std::to_string(epochs)+ std::to_string(lr) + std::to_string(std::time(0)) +"logger.pb";
+    TensorBoardLogger logger(name);
+    int lossC = 0;
+    int accC = 0;
     for(int epoch = 0; epoch < epochs; epoch++){
         //load in training examples:
         std::ifstream in(filename);
@@ -344,6 +372,29 @@ int NN::train(std::string filename, int epochs, double lr) {
         }
         in.close();
         std::cout << "completed epoch #" << epoch << std::endl;
+
+
+        if(epoch % 20 == 0){
+            double lossTot = 0;
+            for(int i = 0; i < runningLoss.size(); i++){
+                lossTot += runningLoss[i];
+            }
+            lossTot /= runningLoss.size();
+            logger.add_scalar("loss", lossC, lossTot);
+            lossC++;
+            runningLoss.clear();
+        }
+
+        if(epoch % 50 == 0){
+            double accTot = 0;
+            for(int i = 0; i < runningAcc.size(); i++){
+                accTot += runningAcc[i];
+            }
+            accTot /= runningAcc.size();
+            logger.add_scalar("acc", accC, accTot);
+            accC++;
+            runningAcc.clear();
+        }
     }
 
 
