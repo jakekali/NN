@@ -6,7 +6,7 @@ using json = nlohmann::json;
 
 
 
-/*int fileEval(const std::string& filein, const std::string& fileout, NN &j){
+int fileEval(const std::string& filein, const std::string& fileout, NN &j, std::vector<int> sizer){
     //open file
     std::ifstream in(filein);
     std::string currLine;
@@ -18,14 +18,13 @@ using json = nlohmann::json;
     //just to skip first line
     std::getline(in, currLine);
     std::vector<stat> stats;
-    auto sizes = split(currLine);
-    stats.resize(sizes[2]);
+    stats.resize(sizer[sizer.size()-1]);
     int k = 0;
-    while(std::getline(in, currLine) && k < sizes[0]){
+    while(std::getline(in, currLine)){
         std::vector<double> ex = split(currLine);
         auto first = ex.cbegin();
-        auto last = ex.cbegin() + sizes[1];
-        auto first2 = ex.cbegin() + sizes[1];
+        auto last = ex.cbegin() + sizer[0];
+        auto first2 = ex.cbegin() + sizer[0];
         auto last2 = ex.cend();
         std::vector<double> inputVec(first, last);
         std::vector<double> outVec(first2,last2);
@@ -33,7 +32,6 @@ using json = nlohmann::json;
         auto ret = j.eval(inputVec);
 
         for(int i = 0; i < stats.size(); i++){
-            //ret[i] = std::round(ret[i]);
 
             if(ret[i] >= 0.5 && outVec[i] == 1){
                 stats[i].A++;
@@ -89,9 +87,9 @@ using json = nlohmann::json;
 
     return 0;
 
-}*/
+}
 int main() {
-    std::cout << "Select an Option: \n1222221. Test \n2.Train\n";
+    std::cout << "Select an Option: \n1. Test \n2. Train\n";
     std::string opt;
     std::cin >> opt;
     if(opt == "1"){
@@ -108,21 +106,29 @@ int main() {
         std::string outfile;
         std::cin >> outfile;
 
+       //get the first line of the weights file
         std::ifstream in(weightsIn);
+        //check if the file exists
+        if(!in){
+            std::cout << "File does not exist\n";
+            return 0;
+        }
         std::string currLine;
-//        std::getline(in,currLine);
-//        in.close();
-//
-//
-//        auto sizes = split(currLine);
-//        std::vector<int> nnSize(sizes.begin(),sizes.end());
-//
-//        NN j = NN(nnSize);
-//        j.loadWeightsFromFile(weightsIn);
-//        fileEval(testFile, outfile, j);
+        std::getline(in, currLine);
+        //close file
+        in.close();
+    
 
 
-    }else{
+        auto sizes = split(currLine);
+        std::vector<int> nnSize(sizes.begin(),sizes.end());
+
+        NN j = NN(nnSize);
+        j.loadWeightsFromFile(weightsIn);
+        fileEval(testFile, outfile, j,nnSize);
+
+
+    }else if (opt == "2"){
         std::cout << "Enter the name of inital weights file: \n";
         std::string weightsIn;
         std::cin >> weightsIn;
@@ -142,24 +148,53 @@ int main() {
         int numEpochs = std::stoi(epochs);
         double numLr = std::stod(lr);
 
+        //get the first line of the weights file
         std::ifstream in(weightsIn);
+        //check if the file exists
+        if(!in){
+            std::cout << "File does not exist\n";
+            return 0;
+        }
         std::string currLine;
-
-        std::filebuf fb;
-        fb.open (weightsIn,std::ios::out);
-        std::ostream os(&fb);
-
-        //just to skip first line
         std::getline(in, currLine);
+        //close file
+        in.close();
+
+        //check if the file exists
+        std::ifstream ll(testFile);
+        if(!ll){
+            std::cout << "File does not exist\n";
+            return 0; 
+        }
+        ll.close();
+        
         auto sizes = split(currLine);
         std::vector<int> nnSize(sizes.begin(),sizes.end());
-        fb.close();
 
         NN j = NN(nnSize);
         j.loadWeightsFromFile(weightsIn);
-        j.train(testFile,numEpochs,numLr);
+        j.train(testFile, numEpochs, numLr);
         j.exportNetwork(outfile, true);
+    }else{
+        std::cout << "Enter size of input layer: \n";
+        std::string inLayerString;
+        std::cin >> inLayerString;
+        std::cout << "Enter size of hidden layer: \n";
+        std::string hiddenLayerString;
+        std::cin >> hiddenLayerString;
+        std::cout << "Enter size of output layer: \n";
+        std::string outputLayerString;
+        std::cin >> outputLayerString;
 
+        //convert to string to ints
+        int inLayer = std::stoi(inLayerString);
+        int hiddenLayer = std::stoi(hiddenLayerString);
+        int outputLayer = std::stoi(outputLayerString);
+        NN j = NN({inLayer, hiddenLayer, outputLayer}); 
+        std::cout << "Enter output file name: \n";
+        std::string outFile;
+        std::cin >> outFile;
+        j.exportNetwork(outFile, true);
     }
     return 0;
 }

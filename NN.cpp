@@ -9,6 +9,7 @@
 #include <cctype>
 #include <string>
 #include <algorithm>
+#include <iostream>
 
 using json = nlohmann::json;
 
@@ -324,6 +325,9 @@ int NN::train(std::string filename, int epochs, double lr) {
         std::vector<double> params = split(currLine);
         for(int example = 0; example < params[0]; example++){
             std::getline(in, currLine);
+            if(currLine[0] == ' '){
+                break;
+            }
             std::vector<double> ex = split(currLine);
             auto first = ex.cbegin();
             auto last = ex.cbegin() + params[1];
@@ -337,9 +341,9 @@ int NN::train(std::string filename, int epochs, double lr) {
             updateWeights(lr);
             cleanUpBackProb();
 
-            // Doesn't work for later epochs, idk why
         }
         in.close();
+        std::cout << "completed epoch #" << epoch << std::endl;
     }
 
 
