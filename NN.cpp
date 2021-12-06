@@ -340,7 +340,7 @@ int NN::cleanUpBackProb() {
 
     */
 int NN::train(std::string filename, int epochs, double lr) {
-    char*  name = "logger.pb";
+    const char*  name = "logger.pb";
     TensorBoardLogger logger(name);
     int lossC = 0;
     int accC = 0;
